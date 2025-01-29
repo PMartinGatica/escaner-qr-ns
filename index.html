@@ -14,46 +14,102 @@
             width: 100%;
             height: auto;
             max-width: 100%;
+            border: 1px solid black;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
         }
     </style>
 </head>
 <body>
     <h2>Escáner QR</h2>
-    <video id="preview" width="100%" height="auto" style="border: 1px solid black;"></video>
+    <video id="preview" width="100%" height="auto"></video>
+    <button id="startButton">Iniciar Escaneo</button>
+    <p id="status"></p>
+
     <script>
+        let scanning = false; // Flag para controlar el estado de escaneo
+        let videoStream = null;
+
+        // Función para iniciar el escaneo
         async function startScanner() {
             const video = document.getElementById('preview');
-            const stream = await navigator.mediaDevices.getUserMedia({ 
-                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
             });
-            video.srcObject = stream;
+            video.srcObject = videoStream;
             video.play();
+            scan(video);
+        }
 
+        // Función para detener el escaneo
+        function stopScanner() {
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop()); // Detener el stream de la cámara
+            }
+        }
+
+        // Función para hacer el escaneo del código QR
+        function scan(video) {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
 
-            function scan() {
+            function scanFrame() {
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
                     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                     const code = jsQR(imageData.data, canvas.width, canvas.height);
+
                     if (code) {
-                        console.log('Código QR detectado:', code.data);
-                        fetch('TU_URL_DE_LA_WEBAPP_AQUÍ?codigo=' + encodeURIComponent(code.data))
+                        // Detener el escaneo una vez detectado el QR
+                        stopScanner();
+                        document.getElementById('status').textContent = "Código QR detectado: " + code.data;
+
+                        // Enviar el código QR a Google Sheets (en formato ENG)
+                        fetch('TU_URL_DE_LA_WEBAPP_AQUÍ?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
                             .then(response => response.text())
-                            .then(data => console.log(data));
-                        // Detener el escaneo si se detectó un QR
-                        stream.getTracks().forEach(track => track.stop());
+                            .then(data => console.log(data))
+                            .catch(error => console.error('Error al enviar el QR:', error));
+                    } else {
+                        // Continuar escaneando si no se detectó el código QR
+                        if (scanning) {
+                            requestAnimationFrame(scanFrame);
+                        }
                     }
+                } else {
+                    // Continuar buscando un QR si la cámara no está lista
+                    requestAnimationFrame(scanFrame);
                 }
-                requestAnimationFrame(scan);
             }
-            scan();
+
+            scanFrame();
         }
 
-        startScanner();
+        // Evento de inicio del escaneo al presionar el botón
+        document.getElementById('startButton').addEventListener('click', function() {
+            if (!scanning) {
+                scanning = true;
+                startScanner();
+                document.getElementById('status').textContent = "Escaneando...";
+                this.textContent = "Detener Escaneo";
+            } else {
+                scanning = false;
+                stopScanner();
+                document.getElementById('status').textContent = "Escaneo detenido.";
+                this.textContent = "Iniciar Escaneo";
+            }
+        });
     </script>
 </body>
 </html>
