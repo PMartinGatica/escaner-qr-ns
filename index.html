@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner QR</title>
+    <title>Escáner QR Automático</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
     <style>
         body {
@@ -16,11 +16,33 @@
             max-width: 100%;
             border: 1px solid black;
         }
+        #qrPreview {
+            margin-top: 20px;
+            font-size: 18px;
+            color: #333;
+        }
+        #qrImage {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            max-width: 100%;
+        }
+        #qrLink {
+            color: #007bff;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <h2>Escáner QR Automático</h2>
     <video id="preview" width="100%" height="auto"></video>
+
+    <!-- Previsualización del QR detectado -->
+    <div id="qrPreview">
+        <p><strong>Código QR detectado:</strong> <span id="qrValue">Esperando código QR...</span></p>
+        <p><strong>Imagen del QR:</strong></p>
+        <img id="qrImage" src="" alt="Imagen del QR" style="max-width: 100%; display: none;" />
+        <p><strong>Acceder al enlace escaneado:</strong> <a href="#" id="qrLink" target="_blank">Esperando QR...</a></p>
+    </div>
 
     <!-- Sonido para el "beep" -->
     <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
@@ -51,13 +73,32 @@
                         const beepSound = document.getElementById('beepSound');
                         beepSound.play();
 
+                        // Mostrar el valor del QR y la imagen
+                        const qrValue = document.getElementById('qrValue');
+                        const qrImage = document.getElementById('qrImage');
+                        const qrLink = document.getElementById('qrLink');
+
+                        qrValue.textContent = code.data;  // Mostrar el valor del código QR
+                        qrImage.src = code.imageData;     // Mostrar la imagen escaneada del QR
+                        qrImage.style.display = 'block';  // Hacer visible la imagen
+
+                        // Mostrar el enlace de la URL contenida en el QR
+                        qrLink.href = code.data;          // Establecer la URL como enlace
+                        qrLink.textContent = code.data;   // Mostrar la URL en el texto
+
                         console.log('Código QR detectado:', code.data);
 
-                        // Enviar el código QR a Google Sheets
+                        // Enviar el código QR a Google Sheets sin redirigir
                         fetch('TU_URL_DE_LA_WEBAPP_AQUÍ?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
                             .then(response => response.text())
-                            .then(data => console.log(data))
-                            .catch(error => console.error('Error al enviar el QR:', error));
+                            .then(data => {
+                                console.log(data);
+                                alert('Código QR enviado correctamente a Google Sheets');
+                            })
+                            .catch(error => {
+                                console.error('Error al enviar el QR:', error);
+                                alert('Hubo un error al enviar el código QR.');
+                            });
 
                         // Detener la cámara una vez que se haya escaneado
                         stream.getTracks().forEach(track => track.stop());
