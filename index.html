@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner QR Version Deep</title>
-    <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
+    <title>Escáner QR con QuaggaJS</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -28,8 +28,8 @@
     </style>
 </head>
 <body>
-    <h2>Escáner QR</h2>
-    <video id="preview" autoplay playsinline></video>
+    <h2>Escáner QR con QuaggaJS</h2>
+    <div id="preview"></div>
 
     <!-- Previsualización del QR detectado -->
     <div id="qrPreview">
@@ -41,67 +41,58 @@
     <audio id="beepSound" src="beep-07.wav" preload="auto"></audio>
 
     <script>
-        async function startScanner() {
-            const video = document.getElementById('preview');
-            const qrValue = document.getElementById('qrValue');
-            const qrLink = document.getElementById('qrLink');
-            const beepSound = document.getElementById('beepSound');
+        const qrValue = document.getElementById('qrValue');
+        const qrLink = document.getElementById('qrLink');
+        const beepSound = document.getElementById('beepSound');
 
-            // Acceder a la cámara con resolución más alta
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: {
-                    facingMode: "environment", // Usar la cámara trasera
-                    width: { ideal: 1920 },   // Mayor resolución para QR pequeños
-                    height: { ideal: 1080 },
-                    focusMode: "continuous"   // Enfoque continuo
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#preview'),
+                constraints: {
+                    width: 640,
+                    height: 480,
+                    facingMode: "environment" // Usar la cámara trasera
                 }
-            });
-            video.srcObject = stream;
-
-            const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d', { willReadFrequently: true });
-
-            function scan() {
-                if (video.readyState === video.HAVE_ENOUGH_DATA) {
-                    canvas.width = video.videoWidth;
-                    canvas.height = video.videoHeight;
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-                    const code = jsQR(imageData.data, canvas.width, canvas.height, {
-                        inversionAttempts: "dontInvert"
-                    });
-
-                    if (code) {
-                        // Validar el formato del QR
-                        const qrPattern = /^8S%.+-.+$/; // Expresión regular para el formato esperado
-                        if (qrPattern.test(code.data)) {
-                            // Emitir beep
-                            beepSound.play();
-
-                            // Mostrar el QR en la página
-                            qrValue.textContent = code.data;
-                            qrLink.href = code.data;
-                            qrLink.textContent = code.data;
-
-                            console.log("Código QR detectado:", code.data);
-
-                            // Enviar datos a Google Sheets
-                            fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=TEST?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
-                                .then(response => response.text())
-                                .then(data => console.log(data))
-                                .catch(error => console.error('Error al enviar el QR:', error));
-                        } else {
-                            console.log("Código QR detectado, pero no coincide con el formato esperado:", code.data);
-                        }
-                    }
-                }
-                requestAnimationFrame(scan);
+            },
+            decoder: {
+                readers: ["qrcode_reader"] // Especificar que solo escanee QR
             }
+        }, function (err) {
+            if (err) {
+                console.error("Error al inicializar Quagga:", err);
+                return;
+            }
+            console.log("Quagga inicializado correctamente.");
+            Quagga.start();
+        });
 
-            scan();
-        }
+        Quagga.onDetected(function (result) {
+            const code = result.codeResult.code;
 
-        startScanner();
+            // Validar el formato del QR
+            const qrPattern = /^8S%.+-.+$/;
+            if (qrPattern.test(code)) {
+                // Emitir beep
+                beepSound.play();
+
+                // Mostrar el QR en la página
+                qrValue.textContent = code;
+                qrLink.href = code;
+                qrLink.textContent = code;
+
+                console.log("Código QR detectado:", code);
+
+                // Enviar datos a Google Sheets
+                fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=TEST?codigo=' + encodeURIComponent(code) + '&formato=ENG')
+                    .then(response => response.text())
+                    .then(data => console.log(data))
+                    .catch(error => console.error('Error al enviar el QR:', error));
+            } else {
+                console.log("Código QR detectado, pero no coincide con el formato esperado:", code);
+            }
+        });
     </script>
 </body>
 </html>
