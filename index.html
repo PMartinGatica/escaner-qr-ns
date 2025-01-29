@@ -42,8 +42,8 @@
         <p><strong>Enlace del QR:</strong> <a href="#" id="qrLink" target="_blank">Esperando QR...</a></p>
     </div>
 
-    <!-- Sonido al escanear -->
-    <audio id="beepSound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+    <!-- Sonido al escanear (usando un archivo local o un servicio alternativo) -->
+    <audio id="beepSound" src="beep-07.wav" preload="auto"></audio>
 
     <script>
         async function startScanner() {
@@ -64,14 +64,14 @@
             video.srcObject = stream;
 
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d');
+            const context = canvas.getContext('2d', { willReadFrequently: true }); // Corregido
 
             function scan() {
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height, { willReadFrequently: true });
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                     const code = jsQR(imageData.data, canvas.width, canvas.height, {
                         inversionAttempts: "dontInvert"
                     });
