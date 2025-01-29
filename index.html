@@ -52,9 +52,14 @@
             const qrLink = document.getElementById('qrLink');
             const beepSound = document.getElementById('beepSound');
 
-            // Acceder a la cámara
+            // Acceder a la cámara con resolución más alta para QR pequeños
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
+                video: {
+                    facingMode: "environment", // Usar la cámara trasera
+                    width: { ideal: 1920 },   // Mayor resolución para QR pequeños
+                    height: { ideal: 1080 },
+                    focusMode: "continuous"   // Enfoque continuo (si está disponible)
+                }
             });
             video.srcObject = stream;
 
@@ -88,8 +93,7 @@
                             .then(data => console.log(data))
                             .catch(error => console.error('Error al enviar el QR:', error));
 
-                        // Detener el escaneo después de detectar un código
-                        stream.getTracks().forEach(track => track.stop());
+                        // No detener la cámara para permitir múltiples escaneos
                     }
                 }
                 requestAnimationFrame(scan);
