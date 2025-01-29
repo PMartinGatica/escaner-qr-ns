@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Escáner QR</title>
+    <title>Escáner QR Version Deep</title>
     <script src="https://unpkg.com/jsqr/dist/jsQR.js"></script>
     <style>
         body {
@@ -21,11 +21,6 @@
             font-size: 18px;
             color: #333;
         }
-        #qrImage {
-            margin-top: 10px;
-            border: 1px solid #ddd;
-            max-width: 100%;
-        }
         #qrLink {
             color: #007bff;
             text-decoration: underline;
@@ -42,7 +37,7 @@
         <p><strong>Enlace del QR:</strong> <a href="#" id="qrLink" target="_blank">Esperando QR...</a></p>
     </div>
 
-    <!-- Sonido al escanear (usando un archivo local o un servicio alternativo) -->
+    <!-- Sonido al escanear -->
     <audio id="beepSound" src="beep-07.wav" preload="auto"></audio>
 
     <script>
@@ -52,19 +47,19 @@
             const qrLink = document.getElementById('qrLink');
             const beepSound = document.getElementById('beepSound');
 
-            // Acceder a la cámara con resolución más alta para QR pequeños
+            // Acceder a la cámara con resolución más alta
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: "environment", // Usar la cámara trasera
                     width: { ideal: 1920 },   // Mayor resolución para QR pequeños
                     height: { ideal: 1080 },
-                    focusMode: "continuous"   // Enfoque continuo (si está disponible)
+                    focusMode: "continuous"   // Enfoque continuo
                 }
             });
             video.srcObject = stream;
 
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d', { willReadFrequently: true }); // Corregido
+            const context = canvas.getContext('2d', { willReadFrequently: true });
 
             function scan() {
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
@@ -77,23 +72,27 @@
                     });
 
                     if (code) {
-                        // Emitir beep
-                        beepSound.play();
+                        // Validar el formato del QR
+                        const qrPattern = /^8S%.+-.+$/; // Expresión regular para el formato esperado
+                        if (qrPattern.test(code.data)) {
+                            // Emitir beep
+                            beepSound.play();
 
-                        // Mostrar el QR en la página
-                        qrValue.textContent = code.data;
-                        qrLink.href = code.data;
-                        qrLink.textContent = code.data;
+                            // Mostrar el QR en la página
+                            qrValue.textContent = code.data;
+                            qrLink.href = code.data;
+                            qrLink.textContent = code.data;
 
-                        console.log("Código QR detectado:", code.data);
+                            console.log("Código QR detectado:", code.data);
 
-                        // Enviar datos a Google Sheets
-                        fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=TEST?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
-                            .then(response => response.text())
-                            .then(data => console.log(data))
-                            .catch(error => console.error('Error al enviar el QR:', error));
-
-                        // No detener la cámara para permitir múltiples escaneos
+                            // Enviar datos a Google Sheets
+                            fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=TEST?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
+                                .then(response => response.text())
+                                .then(data => console.log(data))
+                                .catch(error => console.error('Error al enviar el QR:', error));
+                        } else {
+                            console.log("Código QR detectado, pero no coincide con el formato esperado:", code.data);
+                        }
                     }
                 }
                 requestAnimationFrame(scan);
