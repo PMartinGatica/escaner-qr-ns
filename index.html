@@ -5,14 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Escáner QR</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        #preview {
+            width: 100%;
+            height: auto;
+            max-width: 100%;
+        }
+    </style>
 </head>
 <body>
     <h2>Escáner QR</h2>
-    <video id="preview" width="100%" height="300"></video>
+    <video id="preview" width="100%" height="auto" style="border: 1px solid black;"></video>
     <script>
         async function startScanner() {
             const video = document.getElementById('preview');
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } } 
+            });
             video.srcObject = stream;
             video.play();
 
@@ -27,9 +40,12 @@
                     const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
                     const code = jsQR(imageData.data, canvas.width, canvas.height);
                     if (code) {
-                        fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=' + encodeURIComponent(code.data))
+                        console.log('Código QR detectado:', code.data);
+                        fetch('TU_URL_DE_LA_WEBAPP_AQUÍ?codigo=' + encodeURIComponent(code.data))
                             .then(response => response.text())
                             .then(data => console.log(data));
+                        // Detener el escaneo si se detectó un QR
+                        stream.getTracks().forEach(track => track.stop());
                     }
                 }
                 requestAnimationFrame(scan);
