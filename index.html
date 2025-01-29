@@ -21,6 +21,15 @@
             font-size: 18px;
             color: #333;
         }
+        #qrImage {
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            max-width: 100%;
+        }
+        #qrLink {
+            color: #007bff;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -30,6 +39,7 @@
     <!-- Previsualización del QR detectado -->
     <div id="qrPreview">
         <p><strong>Código QR detectado:</strong> <span id="qrValue">Esperando código QR...</span></p>
+        <p><strong>Enlace del QR:</strong> <a href="#" id="qrLink" target="_blank">Esperando QR...</a></p>
     </div>
 
     <!-- Sonido al escanear -->
@@ -39,6 +49,7 @@
         async function startScanner() {
             const video = document.getElementById('preview');
             const qrValue = document.getElementById('qrValue');
+            const qrLink = document.getElementById('qrLink');
             const beepSound = document.getElementById('beepSound');
 
             // Acceder a la cámara
@@ -48,14 +59,14 @@
             video.srcObject = stream;
 
             const canvas = document.createElement('canvas');
-            const context = canvas.getContext('2d', { willReadFrequently: true });
+            const context = canvas.getContext('2d');
 
             function scan() {
                 if (video.readyState === video.HAVE_ENOUGH_DATA) {
                     canvas.width = video.videoWidth;
                     canvas.height = video.videoHeight;
                     context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+                    const imageData = context.getImageData(0, 0, canvas.width, canvas.height, { willReadFrequently: true });
                     const code = jsQR(imageData.data, canvas.width, canvas.height, {
                         inversionAttempts: "dontInvert"
                     });
@@ -66,14 +77,19 @@
 
                         // Mostrar el QR en la página
                         qrValue.textContent = code.data;
+                        qrLink.href = code.data;
+                        qrLink.textContent = code.data;
 
                         console.log("Código QR detectado:", code.data);
 
                         // Enviar datos a Google Sheets
-                        fetch('TU_URL_DE_LA_WEBAPP_AQUÍ?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
+                        fetch('https://script.google.com/macros/s/AKfycbwJqYw2Uk6j-B1-fWEhtnA6BnbtcXoKE5L71kNiomCA5_D0U26TinhxAUoHvQ_uHld-/exec?codigo=TEST?codigo=' + encodeURIComponent(code.data) + '&formato=ENG')
                             .then(response => response.text())
                             .then(data => console.log(data))
                             .catch(error => console.error('Error al enviar el QR:', error));
+
+                        // Detener el escaneo después de detectar un código
+                        stream.getTracks().forEach(track => track.stop());
                     }
                 }
                 requestAnimationFrame(scan);
